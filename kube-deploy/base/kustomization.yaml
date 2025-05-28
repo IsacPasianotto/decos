@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: decos
+resources:
+  - namespace.yaml
+  - webapp-deployment.yaml
+  - webapp-svc.yaml
+  - pg-statefulset.yaml
+  - db-svc.yaml
+
+
+configMapGenerator:
+  - name: wagtail-cm
+    literals:
+      - WAGTAILADMIN_BASE_URL='http://127.0.0.1'
+      - DECOS_ALLOWED_HOSTS='127.0.0.1'
+      - CSRF_TRUSTED_ORIGINS=['http://127.0.0.1']
+  - name: pg-conf-cm
+    literals:
+      - POSTGRES_MULTIPLE_DATABASES='decos_webapp_db,decos_metadata_db'
+      - POSTGRES_USER='decos'
+      - POSTGRES_PASSWORD='postgres'
+
+secretGenerator:
+  - name: decos-key-sec
+    literals:
+      # python3 -c 'import secrets; print(secrets.token_urlsafe(50))' | base64 -w0
+      - DECOS_SECRET_KEY="cHNVdjVHRWRSX3FFVXU5MG0wZ3hnVUlJUXRiUnczQnVOQXJfYkRrZkdXelRxV1FZaXdLa0syd2tlcUtNYks0LUxHdwo="
+      # - DECOS_SECRET_KEY: "SzTq5A-FZUoCFvZPeKg75xY3-AlHPypsdxQRRqU3YBmbQH6i7gLICDlw6sB0yacBBHc"
+

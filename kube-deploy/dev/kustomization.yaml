@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scim
+
+resources:
+  - ./../base
+
+configMapGenerator:
+  - name: wagtail-cm
+    literals:
+      - WAGTAILADMIN_BASE_URL='http://127.0.0.1'                                # <-- EDIT THERE!
+      - DECOS_ALLOWED_HOSTS='127.0.0.1'                                         # <-- EDIT THERE!
+      - CSRF_TRUSTED_ORIGINS=['http://127.0.0.1']                               # <-- EDIT THERE!
+    behavior: replace
+  - name: pg-conf-cm
+    literals:
+      - POSTGRES_MULTIPLE_DATABASES='decos_webapp_db,decos_metadata_db'
+      - POSTGRES_USER='decos'
+      - POSTGRES_PASSWORD='postgres'
+    behavior: replace
+
+secretGenerator:
+  - name: decos-key-sec
+    literals:
+      # python3 -c 'import secrets; print(secrets.token_urlsafe(50))' | base64 -w0      # <-- EDIT THERE!
+      - DECOS_SECRET_KEY="cHNVdjVHRWRSX3FFVXU5MG0wZ3hnVUlJUXRiUnczQnVOQXJfYkRrZkdXelRxV1FZaXdLa0syd2tlcUtNYks0LUxHdwo="
+    behavior: replace
+  - name: decos-cert-minio-sec
+    files:
+      - ca.pem                                                                  # <-- EDIT THERE! (or this file)
+
+patches:
+  - path: patch-webapp-deployment.yaml
+
+  - target:
+      kind: Deployment
+      name: decos-webapp
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "1"                                                           # <-- EDITH THERE!
+            memory: "1Gi"                                                      # <-- EDITH THERE!
+          limits:
+            cpu: "2"                                                           # <-- EDITH THERE!
+            memory: "5Gi"                                                      # <-- EDITH THERE!
+  # CONTAINER IMAGE & TAG
+  - target:
+      kind: Deployment
+      name: decos-webapp
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: docker.io/<username>/<container_name>:<container_tag>           # <-- EDITH THERE!

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: decos-pg
+  namespace: decos
+spec:
+  serviceName: "decos-pg-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: decos-pg
+  template:
+    metadata:
+      labels:
+        app: decos-pg
+    spec:
+      containers:
+        - name: postgres
+          image: docker.io/your-user/decos_postgres_db:latest
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: pg-conf-cm
+          volumeMounts:
+            - name: pg-decos-data
+              mountPath: /var/lib/postgresql/data
+            - name: pg-decos-backup
+              mountPath: /backups
+  volumeClaimTemplates:
+    - metadata:
+        name: pg-decos-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 3Gi
+
+    - metadata:
+        name: pg-decos-backup
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 3Gi

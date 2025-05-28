@@ -1,0 +1,75 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: scim
+
+resources:
+  - ./../base
+  - webapp-ingress.yaml
+
+configMapGenerator:
+  - name: wagtail-cm
+    literals:
+      - WAGTAILADMIN_BASE_URL=https://your_domain.net               # no quotes or arrays
+      - DECOS_ALLOWED_HOSTS=your_domain.net
+      - CSRF_TRUSTED_ORIGINS=https://your_domain.net
+    behavior: replace
+
+  - name: pg-conf-cm
+    literals:
+      - POSTGRES_MULTIPLE_DATABASES=decos_webapp_db,decos_metadata_db
+      - POSTGRES_USER=decos
+      - POSTGRES_PASSWORD=postgres
+    behavior: replace
+
+  - name: decos-webapp-host-cm
+    literals:
+      - FQDN=webapp.example.com                                      # <-- your real FQDN here
+
+secretGenerator:
+  - name: decos-key-sec
+    literals:
+      - DECOS_SECRET_KEY=cHNVdjVHRWRSX3FFVXU5MG0wZ3hnVUlJUXRiUnczQnVOQXJfYkRrZkdXelRxV1FZaXdLa0syd2tlcUtNYks0LUxHdwo=
+    behavior: replace
+  - name: decos-webapp-tls
+    files:
+      - tls.crt=./ingress-certs/cert.pem                                   # <-- your certificate file
+      - tls.key=./ingress-certs/cert-key.pem
+    type: kubernetes.io/tls
+
+patches:
+  - path: patch-webapp-deployment.yaml
+
+  - target:
+      kind: Deployment
+      name: decos-webapp
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "1"                                                      # <-Edit the needed resources
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "5Gi"
+
+  - target:
+      kind: Deployment
+      name: decos-webapp
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: docker.io/<username>/<container_name>:<container_tag>
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: decos-webapp-host-cm
+      fieldPath: data.FQDN
+    targets:
+      - select:
+          kind: Ingress
+          name: webapp-ingress
+        fieldPaths:
+          - spec.tls.0.hosts.0
+          - spec.rules.0.host

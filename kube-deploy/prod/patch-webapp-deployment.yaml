@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: decos-webapp
+  namespace: decos
+spec:
+  template:
+    spec:
+      containers:
+        - name: decos-webapp
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 5678
+              name: debug
+          command:
+            - sh
+            - -c
+            - >
+              python /app/decos/decos_webapp/manage.py collectstatic --noinput &&
+              cat /ca.pem >> /usr/local/lib/python3.12/site-packages/certifi/cacert.pem &&
+              PYTHONPATH=/app/decos/decos_webapp gunicorn decos_webapp.wsgi:application --bind 0.0.0.0:8080"
+          volumeMounts:
+            - name: ca-cert
+              mountPath: /ca.pem
+              subPath: ca.pem
+      volumes:
+        - name: ca-cert
+          secret:
+            secretName: decos-cert-minio-sec

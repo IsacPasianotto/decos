@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: decos-webapp-svc
+  namespace: decos
+  labels:
+    app: decos-webapp
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: decos-http-port
+  selector:
+    app: decos-webapp
+  type: ClusterIP
