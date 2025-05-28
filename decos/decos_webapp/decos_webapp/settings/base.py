@@ -5,10 +5,10 @@
 
 # Author: Marco Prenassi
 # Date: 2025-02-17
-# 
-# Description: 
-# This file contains the base settings for the Django Wagtail project 'decos_webapp'. 
-# It defines the core configurations, including installed applications, middleware, 
+#
+# Description:
+# This file contains the base settings for the Django Wagtail project 'decos_webapp'.
+# It defines the core configurations, including installed applications, middleware,
 # database connections, authentication settings, static file management, and Wagtail-specific settings.
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",  # Manages static file handling
     "wagtail.contrib.settings",  # Site-wide configurable settings in Wagtail
     "django.forms",  # Enables form customization and rendering
-    "PRP_CDM_app",  # Custom app supporting the PRP@CERIC common data model 
+    "PRP_CDM_app",  # Custom app supporting the PRP@CERIC common data model
     "allauth",  # Third-party authentication system
     "allauth.account",  # Account authentication and registration
     "allauth.socialaccount",  # Social authentication integration
@@ -164,7 +164,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",  # Stores uploaded media files in the local filesystem.
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",  
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
         # Ensures static file names include a hash for cache busting (recommended for production).
     },
 }
@@ -207,8 +207,17 @@ ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USERNAME_BLACKLIST = ["admin", "god"]
 ACCOUNT_USERNAME_MIN_LENGTH = 2
 
-# OpenID Connect authentication via Allauth
-from .secrets_minIO import SECRETS_MINIO
+open_id_authentik_client_id = ""
+open_id_authentik_secret_token = ""
+
+# check if in the envs exists the  OIDC_AUTHENTIK_CLIENT_ID and OIDC_AUTHENTIK_SECRET_TOKEN
+if "OIDC_AUTHENTIK_CLIENT_ID" in os.environ and "OIDC_AUTHENTIK_SECRET_TOKEN" in os.environ:
+    open_id_authentik_client_id = os.environ["OIDC_AUTHENTIK_CLIENT_ID"]
+    open_id_authentik_secret_token = os.environ["OIDC_AUTHENTIK_SECRET_TOKEN"]
+else:
+    from .secrets_minIO import SECRETS_MINIO
+    open_id_authentik_client_id = SECRETS_MINIO.client_id
+    open_id_authentik_secret_token = SECRETS_MINIO.secret_token
 
 
 # REDIRECT URL IN AUTHENTIK: http[s]://<host>:<port>/oidc/authentik/login/callback/
@@ -222,12 +231,9 @@ SOCIALACCOUNT_PROVIDERS = {
                 "server_url": "https://orfeo-auth.areasciencepark.it/application/o/decos/.well-known/openid-configuration",
                 "token_auth_method": "client_secret_basic",
                 "APP": {
-                    "client_id": f"{SECRETS_MINIO.client_id}",
-                    "secret": f"{SECRETS_MINIO.secret_token}"
-                },
+                    "client_id": f"{open_id_authentik_client_id}",
+                    "secret": f"{open_id_authentik_secret_token}"
             }
         ]
     }
 }
-
-
